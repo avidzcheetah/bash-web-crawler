@@ -79,6 +79,32 @@ check_vulnerabilities() {
     echo
 }
 
+# Function to check for directory listing vulnerability
+detect_directory_listing() {
+    local url="$1"
+    echo "Checking for Directory Listing Vulnerability:"
+    response=$(curl -s -I "$url")
+    if [[ "$response" == *"200 OK"* ]]; then
+        echo "- Directory listing might be enabled on $url"
+    else
+        echo "- Directory listing not detected."
+    fi
+}
+
+# Function to detect file upload endpoints
+check_file_upload_vulnerability() {
+    local html="$1"
+    echo "Checking for File Upload Vulnerabilities:"
+    echo "$html" | grep -oP '(?i)<input[^>]*type="file"' | sed 's/^/- File upload field detected: /'
+}
+
+# Function to detect sensitive information exposure
+check_sensitive_information() {
+    local html="$1"
+    echo "Checking for Sensitive Information Exposure:"
+    echo "$html" | grep -oP '(?i)(password|api_key|secret)[^<>]*' | sed 's/^/- Sensitive information detected: /'
+}
+
 # Main function
 main() {
     echo "
@@ -113,6 +139,9 @@ main() {
 
     # Check vulnerabilities
     check_vulnerabilities "$html" "$url"
+    detect_directory_listing "$url"
+    check_file_upload_vulnerability "$html"
+    check_sensitive_information "$html"
 }
 
 # Run the script
