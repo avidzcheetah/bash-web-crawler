@@ -1,0 +1,17 @@
+# Environments
+venv/
+env/
+.env
+
+# Playwright browsers
+pw-browsers/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Reports
+*.json
+*.md
+!README.md

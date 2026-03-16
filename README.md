@@ -1,76 +1,78 @@
-# Bash Web Crawler and Vulnerability Checker
+# 🛡️ AI-Powered Advanced Web Crawler & Scanner v2.0
 
-This repository contains a simple Bash script that crawls a user-provided webpage, extracts important points (headings, paragraphs, and links), and identifies potential vulnerabilities such as insecure forms and links.
+![Banner](screenshot.png)
 
-## Features
+A high-performance, AI-driven security tool designed for deep recursive crawling and vulnerability analysis. Recreated from the original `crawler.sh` using modern web technologies, Playwright, and the official Google Gemini (`google-genai`) SDK.
 
-- Extracts:
-  - Headings (`h1`, `h2`, `h3`, etc.)
-  - Paragraphs
-  - Links
-- Checks for vulnerabilities:
-  - Insecure forms (`http` action URLs).
-  - External scripts loaded from different domains.
-  - Absence of Content Security Policy (CSP).
-  - Links using `http` instead of `https`.
+---
 
-## Prerequisites
+## 📖 Complete Guide
 
-Before running the script, ensure your system meets the following requirements:
+### 1. Prerequisites
+Before running the scanner, ensure you have the following installed:
+- **Python 3.8 or higher**: Required for the core scanning engine.
+- **Git Bash (Windows) / Zsh / Bash**: Required to run the `crawler.sh` wrapper.
+- **Internet Connection**: Required for fetching pages and AI analysis.
 
-- **Bash**: Installed by default on Linux/macOS. For Windows, install Git Bash or use WSL (Windows Subsystem for Linux).
-- **Utilities**: `curl`, `grep`, `sed`, and other standard Unix utilities are required. These come pre-installed on most Unix-like systems.
-
-## How to Use
-
-### Step 1: Clone the Repository
-
+### 2. Installation
+Clone the repository and navigate to the directory:
 ```bash
 git clone https://github.com/avidzcheetah/bash-web-crawler.git
 cd bash-web-crawler
 ```
 
-### Step 2: Make the Script Executable
+### 3. Configuration (AI Features)
+To enable AI-powered vulnerability validation and reduce false positives:
+1. Obtain a **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/).
+2. Create a file named `.env` in the root folder.
+3. Add your key to the file:
+   ```env
+   GEMINI_API_KEY=your_actual_api_key_here
+   ```
+*Note: If no key is provided, the scanner will still work but will skip the deep AI validation step.*
 
+### 4. Running the Scanner
+The `crawler.sh` script is an intelligent wrapper. On its first run, it will automatically:
+- Create a Python virtual environment (`venv`).
+- Install all required dependencies (`google-genai`, `playwright`, `beautifulsoup4`, etc.).
+- Download the necessary **Chromium** browser binaries directly into a local `pw-browsers` folder for isolated execution.
+
+**Basic Usage:**
 ```bash
-chmod +x crawler.sh
+./crawler.sh https://example.com
 ```
 
-### Step 3: Run the Script
-
+**Advanced Usage:**
 ```bash
-./crawler.sh
+./crawler.sh -p 20 -o my_report https://target-site.com
 ```
 
-When prompted, enter the URL of the webpage you want to analyze.
+### 5. CLI Options
+| Option | Long Flag | Description | Default |
+| --- | --- | --- | --- |
+| `-p` | `--pages` | Maximum number of internal pages to crawl | `10` |
+| `-o` | `--output` | Filename for the generated reports (no extension) | `scan_report` |
+| `-v` | `--verbose` | Show detailed execution logs | `Disabled` |
+| `-h` | `--help` | Display the help message | `-` |
 
-## Example Output
+### 6. Troubleshooting
+**Playwright Browser Issues (Missing Executable):**
+If the script fails to launch the browser or reports a missing executable, the automated setup might have been interrupted. To fix this manually:
+1. Activate the virtual environment: `source venv/Scripts/activate` (Windows) or `source venv/bin/activate` (Mac/Linux).
+2. Run: `export PLAYWRIGHT_BROWSERS_PATH="$PWD/pw-browsers"` (or similar depending on your OS).
+3. Run: `playwright install chromium`
 
-When you run the script, it will:
-1. Extract headings, paragraphs, and links from the webpage.
-2. Display potential vulnerabilities, such as insecure forms or links.
+### 7. Understanding the Output
+After the scan completes, two files will be generated in the current directory:
+- **`[filename].json`**: Raw JSON data containing all findings, ideal for integration with other security tools.
+- **`[filename].md`**: A beautifully formatted summary of all findings, sorted by severity (Critical to Info), including specific code snippets and AI analysis justifications.
 
-### Example Screenshot
+## 🚀 Key Features
+- **Deep Crawling**: Uses Playwright to navigate complex Single Page Applications (SPAs) and JavaScript-rendered content that standard `curl`-based crawlers miss.
+- **Smart Analysis**: Built-in heuristic modules for detecting SQLi, XSS, insecure forms, and Open Redirects.
+- **AI Validation Engine**: Utilizes the modern `google-genai` SDK and the `gemini-2.5-flash` model to analyze context, dramatically reducing false positives by confirming if a heuristic flag is an actual risk.
+- **Automatic Categorization**: Vulnerabilities are ranked as **Critical, High, Medium, Low, or Info**.
+- **Cross-Platform Compatibility**: Enhanced bash wrapper specifically designed to resolve Windows/Unix path collisions in Git Bash environments.
 
-Below is a screenshot of the tool's output:
-
-![Tool Output](./screenshot.png)
-
-## Contributing
-
-Contributions are welcome! If you:
-
-- Encounter any issues
-- Have suggestions or feature requests  
-
-Feel free to open an issue or submit a pull request.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Author
-
-Developed by **Avidu Witharana** (Avidz).  
-For inquiries or suggestions, feel free to contact me at [avidu@ieee.org](mailto:avidu@ieee.org).
-
+---
+*Developed with ❤️ by Avidz*

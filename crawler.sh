@@ -1,119 +1,143 @@
 #!/bin/bash
 
-# Function to fetch a webpage
-fetch_webpage() {
-    local url="$1"
-    local html=$(curl -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" "$url")
-    echo "$html"
+# ==============================================================================
+# ░▒█▀▀▄░█▀▀▄░█▀▀▄░█░░░█░█░░█▀▀░█▀▀▄
+# ░▒█░░░░█▄▄▀░█▄▄█░▀▄█▄▀░█░░█▀▀░█▄▄▀
+# ░▒█▄▄▀░▀░▀▀░▀░░▀░░▀░▀░░▀▀░▀▀▀░▀░▀▀
+#                     by 𝘈𝘷𝘪𝘥𝘻 (Advanced AI Version)
+# ==============================================================================
+# Advanced Bash Wrapper for AI-Powered Web Vulnerability Scanner
+# ==============================================================================
+
+# Colors for UI
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Default values
+MAX_PAGES=10
+OUTPUT_FILE="scan_report"
+VERBOSE=0
+
+# Help function
+show_help() {
+    echo -e "${BLUE}Usage: $0 [options] <URL>${NC}"
+    echo ""
+    echo "Options:"
+    echo "  -p, --pages <num>    Maximum pages to crawl (default: 10)"
+    echo "  -o, --output <file>  Output filename without extension (default: scan_report)"
+    echo "  -v, --verbose        Enable verbose logging"
+    echo "  -h, --help           Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 https://example.com"
+    echo "  $0 -p 50 -o my_scan https://example.com"
 }
 
-# Function to extract headings
-extract_headings() {
-    local html="$1"
-    echo "Extracting Headings:"
-    echo "$html" | grep -oP '(?i)<h[1-6][^>]*>.*?</h[1-6]>' | sed -E 's/<[^>]+>//g' | awk '{print "- " $0}'
-    echo
-}
-
-# Function to extract paragraphs
-extract_paragraphs() {
-    local html="$1"
-    echo "Extracting First 5 Paragraphs:"
-    echo "$html" | grep -oP '(?i)<p[^>]*>.*?</p>' | sed -E 's/<[^>]+>//g' | head -n 5 | awk '{print "- " $0}'
-    echo
-}
-
-# Function to extract links
-extract_links() {
-    local html="$1"
-    local url="$2"
-    local internal_domain=$(echo "$url" | awk -F/ '{print $3}')
-    echo "Extracting First 10 Links with Classification:"
-    echo "$html" | grep -oP '(?i)href="[^">]+"' | sed -E 's/href="([^"]+)"/\1/' | head -n 10 | while read -r link; do
-        if [[ "$link" == *"$internal_domain"* ]]; then
-            echo "- Internal link: $link"
-        elif [[ "$link" =~ ^http://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            echo "- Link to IP address (potentially risky): $link"
-        else
-            echo "- External link: $link"
-        fi
+# Progress bar function
+show_progress() {
+    local duration=$1
+    local prefix=$2
+    local col=50
+    echo -ne "$prefix "
+    for ((i=1; i<=col; i++)); do
+        echo -ne "░"
+        sleep 0.05
     done
-    echo
+    echo -e " [DONE]"
 }
 
-# Function to check vulnerabilities
-check_vulnerabilities() {
-    local html="$1"
-    local url="$2"
-    echo "Checking for Potential Vulnerabilities:"
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -p|--pages)
+            MAX_PAGES="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        http*)
+            TARGET_URL="$1"
+            shift
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown argument $1${NC}"
+            show_help
+            exit 1
+            ;;
+    esac
+done
 
-    # Check for insecure forms
-    echo "$html" | grep -oP '(?i)<form[^>]*action="[^"]+"' | grep -v "https://" | sed -E 's/.*action="([^"]+)".*/- Form with insecure action: \1/'
+if [[ -z "$TARGET_URL" ]]; then
+    echo -e "${RED}Error: Target URL is required.${NC}"
+    show_help
+    exit 1
+fi
 
-    # Check for external scripts
-    echo "$html" | grep -oP '(?i)<script[^>]*src="[^"]+"' | grep -v "$(echo "$url" | awk -F/ '{print $3}')" | sed -E 's/.*src="([^"]+)".*/- External script loaded: \1/'
+echo -e "${BLUE}"
+echo "    ░▒█▀▀▄░█▀▀▄░█▀▀▄░█░░░█░█░░█▀▀░█▀▀▄"
+echo "    ░▒█░░░░█▄▄▀░█▄▄█░▀▄█▄▀░█░░█▀▀░█▄▄▀"
+echo "    ░▒█▄▄▀░▀░▀▀░▀░░▀░░▀░▀░░▀▀░▀▀▀░▀░▀▀ v2.0"
+echo "                        by 𝘈𝘷𝘪𝘥𝘻"
+echo -e "${NC}"
 
-    # Check if HTTPS is used
-    if ! echo "$url" | grep -q "https://"; then
-        echo "- The webpage does not use HTTPS."
+# Path resolution for native Python on Git Bash (Windows)
+if command -v pwd >/dev/null && pwd -W >/dev/null 2>&1; then
+    export PLAYWRIGHT_BROWSERS_PATH="$(pwd -W)/pw-browsers"
+else
+    export PLAYWRIGHT_BROWSERS_PATH="$PWD/pw-browsers"
+fi
+
+# Check for Python and Virtual Environment
+if [[ ! -d "venv" ]]; then
+    echo -e "${YELLOW}[!] Virtual environment not found. Initializing setup...${NC}"
+    show_progress 2 "Setting up environment"
+    python -m venv venv
+    source venv/Scripts/activate || source venv/bin/activate
+    pip install -r requirements.txt &> /dev/null
+    
+    echo -e "\n${YELLOW}[!] Installing Playwright browsers locally... This may take a moment.${NC}"
+    playwright install chromium
+else
+    source venv/Scripts/activate || source venv/bin/activate
+    # Dynamic check for playwright browsers
+    if [[ ! -d "$PLAYWRIGHT_BROWSERS_PATH" ]]; then
+         echo -e "${YELLOW}[!] Playwright browsers might be missing. Verifying...${NC}"
+         playwright install chromium
     fi
+fi
 
-    # Check for insecure links
-    echo "$html" | grep -oP '(?i)href="http://[^"]+"' | sed -E 's/href="//g; s/"//g' | awk '{print "- Insecure link found: " $0}'
+# Check for .env file
+if [[ ! -f ".env" ]]; then
+    echo -e "${YELLOW}[!] Warning: .env file missing. AI features may be disabled.${NC}"
+fi
 
-    # Check for missing security headers
-    local headers=$(curl -sI "$url")
-    [[ "$headers" != *"Content-Security-Policy"* ]] && echo "- Missing Content-Security-Policy header"
-    [[ "$headers" != *"X-Frame-Options"* ]] && echo "- Missing X-Frame-Options header"
-    [[ "$headers" != *"Strict-Transport-Security"* ]] && echo "- Missing Strict-Transport-Security header"
+# Run the scanner
+echo -e "${GREEN}[*] Initializing deep scan on: ${TARGET_URL}${NC}"
+echo -e "${GREEN}[*] Max Pages: ${MAX_PAGES} | Output: ${OUTPUT_FILE}${NC}"
+echo ""
 
-    # Detect deprecated tags
-    echo "$html" | grep -oP '(?i)<(marquee|blink)>' | sed 's/^/- Deprecated tag found: /'
+# Use python to run the main script
+PYTHONPATH=. python main.py "$TARGET_URL" --max-pages "$MAX_PAGES" --output "$OUTPUT_FILE"
 
-    # Detect potential XSS vulnerabilities
-    echo "$html" | grep -i -o '<script>.*</script>' | sed 's/^/- Inline script detected (possible XSS): /'
-    echo "$html" | grep -i -o '<img[^>]*onerror=[^>]*>' | sed 's/^/- Potential XSS in img tag: /'
-
-    # Detect open redirect vulnerabilities
-    echo "$html" | grep -oP '(?i)(href|action)="[^"]+"' | grep -P '([?&](redirect|url|next|goto)=)' | sed -E 's/.*(href|action)="([^"]+)".*/- Potential open redirect link: \2/'
-    echo
-}
-
-# Main function
-main() {
-    echo "
-            ░▒█▀▀▄░█▀▀▄░█▀▀▄░█░░░█░█░░█▀▀░█▀▀▄
-            ░▒█░░░░█▄▄▀░█▄▄█░▀▄█▄▀░█░░█▀▀░█▄▄▀
-            ░▒█▄▄▀░▀░▀▀░▀░░▀░░▀░▀░░▀▀░▀▀▀░▀░▀▀
-                                by 𝘈𝘷𝘪𝘥𝘻
-    https://github.com/avidzcheetah
-    "
-
-    # Input URL
-    read -p "Enter the URL of the webpage: " url
-
-    # Validate URL format
-    if ! [[ "$url" =~ ^https?://[^/]+ ]]; then
-        echo "Invalid URL format. Please use http:// or https://"
-        exit 1
-    fi
-
-    # Fetch the webpage
-    html=$(fetch_webpage "$url")
-
-    if [[ -z "$html" ]]; then
-        echo "Failed to fetch the webpage."
-        exit 1
-    fi
-
-    # Extract information
-    extract_headings "$html"
-    extract_paragraphs "$html"
-    extract_links "$html" "$url"
-
-    # Check vulnerabilities
-    check_vulnerabilities "$html" "$url"
-}
-
-# Run the script
-main
+if [[ $? -eq 0 ]]; then
+    echo -e "\n${GREEN}[+] Scan completed successfully!${NC}"
+    echo -e "${BLUE}[i] Reports available at:${NC}"
+    echo -e "    - ${OUTPUT_FILE}.json"
+    echo -e "    - ${OUTPUT_FILE}.md"
+else
+    echo -e "\n${RED}[!] Scan failed or was interrupted.${NC}"
+    exit 1
+fi
